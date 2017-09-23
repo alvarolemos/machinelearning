@@ -102,17 +102,20 @@ calcCentroids <- function(X, U) {
   #   The clusters' centroids matrix
   K = ncol(U)
   nFeatures <- ncol(X)
+  MIN_NUM_SAMPLES_PER_CLUSTER <- 3
 
-  foreach (j = 1:K, .combine=rbind) %dopar% {
+  centroids <- c()
+  for (j in 1:K) {
     mask <- which(U[, j] == 1)
     currentClusterSamples <- X[mask, ]
-    if (length(currentClusterSamples) == 0) {
-      centroid <- X[sample(nrow(X), 1), ]
+    if (length(currentClusterSamples) < MIN_NUM_SAMPLES_PER_CLUSTER) {
+      return(generateRandomCenters(X, K))
     } else {
-      centroid <- apply(currentClusterSamples, 2, mean)
+      centroid <- apply(as.matrix(currentClusterSamples), 2, mean)
     }
-    centroid
+    centroids <- rbind(centroids, centroid)
   }
+  centroids
 }
 
 
