@@ -13,23 +13,28 @@ fitBayesian <- function(X, y) {
   #     - Vector with means for each feature
   #     - Covariance matrix
   #     - Prior probability
-  foreach (label = unique(y)) %do% {
+  model <- list()
+  labels <- sort(unique(y))
+  # foreach (label = unique(y)) %do% {
+  for (label in labels) {
     mask <- which(y == label)
+    Xlabel <- as.matrix(X[mask, ])
 
-    means <- apply(X[mask, ], 2, mean)
-    covMatrix <- cov(X[mask, ])
+    means <- apply(Xlabel, 2, mean)
+    covMatrix <- cov(Xlabel)
     priorProb <- length(y[mask]) / length(y)
 
-    list(
+    model[[label]] <- list(
       means = means,
       covMatrix = covMatrix,
       priorProb = priorProb
     )
   }
+  model
 }
 
 
-predict <- function(model, X) {
+predictBayesian <- function(model, X) {
   # Classifies samples based on Bayes' Formula.
   #
   # Args:
@@ -53,12 +58,12 @@ predictProbs <- function(model, X) {
   #
   # Returns:
   #   A matrix with posterior probabilities as columns and samples as rows
-  foreach (labelParams = model, .combine = cbind) %do% {
-    means <- labelParams$means
-    covMatrix <- labelParams$covMatrix
-    priorProb <- labelParams$priorProb
+  probs <- c()
+  for (labelParams in model) {
     labelProbs <- apply(as.matrix(X), 1, calcPosteriorProb, labelParams)
+    probs <- cbind(probs, labelProbs)
   }
+  probs
 }
 
 
