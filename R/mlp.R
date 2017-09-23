@@ -1,8 +1,9 @@
-feedForward <- function(X, weights, netDepth) {
+feedForward <- function(X, weights) {
   netActivations <- list()
   layerOutputs <- list()
   layerInput <- X
 
+  netDepth <- length(weights)
   for (i in 1:netDepth) {
     netActivations[[i]] <- passForward(layerInput, weights[[i]])
     layerOutputs[[i]] <- activate(netActivations[[i]])
