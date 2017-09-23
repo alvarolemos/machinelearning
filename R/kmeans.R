@@ -23,7 +23,14 @@ fitKmeans <- function(X, K, membershipAsVector = FALSE) {
   while (TRUE) {
     centroids <- calcCentroids(X, U)
     newU <- updateMembershipMatrix(X, centroids)
-    if (all(newU == U)) break
+    if (all(newU == U)) {
+      if (all(apply(U, 2, sum) >= 2)) {
+        break
+      } else {
+        centroids <- generateRandomCenters(X, K)
+        newU <- updateMembershipMatrix(X, centroids)
+      }
+    }
     U <- newU
   }
 
