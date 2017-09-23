@@ -1,3 +1,21 @@
+feedForward <- function(X, weights, netDepth) {
+  netActivations <- list()
+  layerOutputs <- list()
+  layerInput <- X
+
+  for (i in 1:netDepth) {
+    netActivations[[i]] <- passForward(layerInput, weights[[i]])
+    layerOutputs[[i]] <- activate(netActivations[[i]])
+    layerInput <- layerOutputs[[i]]
+  }
+
+  list(
+    netActivations = netActivations,
+    layerOutputs = layerOutputs
+  )
+}
+
+
 passForward <- function(X, W) {
   Xbiased <- addBias(X)
   net <- Xbiased %*% t(W)
