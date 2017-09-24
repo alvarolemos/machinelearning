@@ -58,3 +58,15 @@ computeCost <- function(targets, z) {
 activate <- function(net) {
   return(sigmoid(net))
 }
+
+
+calcSensitivity <- function(sampleNetActivation, nextLayerWeights, nextLayerSensitivities, currentLayer, netLayout, sampleError) {
+  dOutputdNetActivation <- sigmoidDerivative(sampleNetActivation)
+  if (currentLayer == length(netLayout)) {
+    sensitivity <- sampleError * dOutputdNetActivation
+  } else {
+    weightedNextLayerSensitivitiesSum <- t(removeBias(nextLayerWeights)) %*% nextLayerSensitivities
+    sensitivity <- dOutputdNetActivation * weightedNextLayerSensitivitiesSum
+  }
+  matrix(sensitivity, nrow=netLayout[currentLayer], ncol=1)
+}
