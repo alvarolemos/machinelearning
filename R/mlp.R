@@ -12,7 +12,6 @@ fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpoch
   state$J <- c()
 
   for (epoch in 1:maxNumEpochs) {
-
     feedForwardResults <- feedForward(X, state$weights)
     state$netActivations <- feedForwardResults$netActivations
     state$layerOutputs <- feedForwardResults$layerOutputs
@@ -31,7 +30,7 @@ fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpoch
         state$currentLayer <- layer
         state$sensitivities[[layer]] <- calcSensitivity(state, layout)
         dW <- calcWeightsCorrection(state, X, learningRate)
-        
+
         if (protocol == 'sgd') {
           state$weights[[layer]] <- state$weights[[layer]] + dW
         } else if (protocol == 'batch') {
@@ -54,6 +53,14 @@ fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpoch
     weights = state$weights,
     costHistory = state$J  
   )
+}
+
+
+predictMlp <- function(X, weights) {
+  feedForwardResults <- feedForward(X, weights)
+  layerOutputs <- feedForwardResults$layerOutputs
+  netDepth <- length(weights)
+  layerOutputs[[netDepth]]
 }
 
 
@@ -119,12 +126,12 @@ removeBias <- function(W) {
 }
 
 
-sigmoid = function(x) {
+sigmoid <- function(x) {
   return(1 / (1 + exp(-x)))
 }
 
 
-sigmoidDerivative = function(x) {
+sigmoidDerivative <- function(x) {
   return(sigmoid(x) * (1 - sigmoid(x)))
 }
 
