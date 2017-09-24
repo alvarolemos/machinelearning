@@ -1,3 +1,70 @@
+fitMlp <- function(X, targets, layout, learningRate, maxNumEpochs) {
+  state <- list()
+  netDepth <- length(layout)
+  state$weights <- initializeRandomWeights(X, layout)
+  state$J <- c()
+
+  for (epoch in 1:maxNumEpochs) {
+
+    feedForwardResults <- feedForward(X, state$weights)
+    state$netActivations <- feedForwardResults$netActivations
+    state$layerOutputs <- feedForwardResults$layerOutputs
+
+    predictions <- state$layerOutputs[[netDepth]]
+    state$J <- c(state$J, computeCost(targets, predictions))
+    state$errors <- targets - predictions
+
+    deltaWeights <- initializeWeightsCorrection(state$weights)
+    nSamples <- nrow(X)
+    for (sample in 1:nSamples) {
+      state$currentSample <- sample
+      state$sensitivities <- list()
+      for (layer in netDepth:1) {
+        state$currentLayer <- layer
+        state$sensitivities[[layer]] <- calcSensitivity(state, layout)
+        dW <- calcWeightsCorrection(state, X)
+        deltaWeights[[layer]] <- deltaWeights[[layer]] + dW # TODO - Remove hardcoded batch gradient descent
+      }
+    }
+
+    for (i in netDepth:1) {
+      state$weights[[i]] <- state$weights[[i]] + deltaWeights[[i]]
+    }
+  }
+  
+  list(
+    weights = state$weights,
+    costHistory = state$J  
+  )
+}
+
+
+initializeRandomWeights <- function(X, layout) {
+  weights <- list()
+  prevLayerSize <- ncol(X)
+  for (layer in 1:length(layout)) {
+    weights[[layer]] <- initializeRandomLayerWeights(prevLayerSize + 1, layout[layer])
+    prevLayerSize <- layout[layer]
+  }
+  weights
+}
+
+
+initializeRandomLayerWeights <- function(inputSize, outputSize) {
+  randomValues <- runif(inputSize * outputSize)
+  return(matrix(randomValues, nrow=outputSize, ncol=inputSize))
+}
+
+
+initializeWeightsCorrection <- function(weights) {
+  deltaWeights <- list()
+  for (i in 1:length(weights)) {
+    deltaWeights[[i]] <- matrix(0, nrow = nrow(weights[[i]]), ncol = ncol(weights[[i]]))
+  }
+  deltaWeights
+}
+
+
 feedForward <- function(X, weights) {
   netActivations <- list()
   layerOutputs <- list()
@@ -34,12 +101,6 @@ removeBias <- function(W) {
 }
 
 
-initializeRandomWeights <- function(inputSize, outputSize) {
-  randomValues <- runif(inputSize * outputSize)
-  return(matrix(randomValues, nrow=outputSize, ncol=inputSize))
-}
-
-
 sigmoid = function(x) {
   return(1 / (1 + exp(-x)))
 }
@@ -60,13 +121,31 @@ activate <- function(net) {
 }
 
 
-calcSensitivity <- function(sampleNetActivation, nextLayerWeights, nextLayerSensitivities, currentLayer, netLayout, sampleError) {
-  dOutputdNetActivation <- sigmoidDerivative(sampleNetActivation)
-  if (currentLayer == length(netLayout)) {
-    sensitivity <- sampleError * dOutputdNetActivation
+calcSensitivity <- function(state, layout) {
+  layer <- state$currentLayer
+  sample <- state$currentSample
+  dOutputdNetActivation <- sigmoidDerivative(state$netActivations[[layer]][sample, ])
+  if (layer == length(layout)) {
+    error <- state$errors[sample]
+    sensitivity <- dOutputdNetActivation * error
   } else {
-    weightedNextLayerSensitivitiesSum <- t(removeBias(nextLayerWeights)) %*% nextLayerSensitivities
+    weightedNextLayerSensitivitiesSum <- t(removeBias(state$weights[[layer + 1]])) %*% state$sensitivities[[layer + 1]]
     sensitivity <- dOutputdNetActivation * weightedNextLayerSensitivitiesSum
   }
-  matrix(sensitivity, nrow=netLayout[currentLayer], ncol=1)
+  matrix(sensitivity, nrow=layout[layer], ncol=1)
+}
+
+
+calcWeightsCorrection <- function(state, X) {
+  layer <- state$currentLayer
+  sample <- state$currentSample
+  
+  if (layer == 1) {
+    prevLayerOutput <- X
+  } else {
+    prevLayerOutput <- state$layerOutputs[[layer - 1]]
+  }
+  prevLayerOutput <- addBias(prevLayerOutput)
+
+  learningRate * (state$sensitivities[[layer]] %*% t(prevLayerOutput[sample, ]))
 }
