@@ -1,4 +1,11 @@
-fitMlp <- function(X, targets, layout, learningRate, maxNumEpochs) {
+AVAILABLE_TRAINING_PROTOCOLS <- c('sgd', 'batch')
+
+
+fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpochs=1000, protocol='sgd') {
+  if (!(protocol %in% AVAILABLE_TRAINING_PROTOCOLS)) {
+    stop(paste('Invalid training protocol:', protocol))
+  }
+
   state <- list()
   netDepth <- length(layout)
   state$weights <- initializeRandomWeights(X, layout)
@@ -19,19 +26,30 @@ fitMlp <- function(X, targets, layout, learningRate, maxNumEpochs) {
     for (sample in 1:nSamples) {
       state$currentSample <- sample
       state$sensitivities <- list()
+
       for (layer in netDepth:1) {
         state$currentLayer <- layer
         state$sensitivities[[layer]] <- calcSensitivity(state, layout)
-        dW <- calcWeightsCorrection(state, X)
-        deltaWeights[[layer]] <- deltaWeights[[layer]] + dW # TODO - Remove hardcoded batch gradient descent
+        dW <- calcWeightsCorrection(state, X, learningRate)
+        
+        if (protocol == 'sgd') {
+          state$weights[[layer]] <- state$weights[[layer]] + dW
+        } else if (protocol == 'batch') {
+          deltaWeights[[layer]] <- deltaWeights[[layer]] + dW
+        }
       }
     }
 
-    for (i in netDepth:1) {
-      state$weights[[i]] <- state$weights[[i]] + deltaWeights[[i]]
+    if (protocol == 'batch') {
+      for (layer in netDepth:1) {
+        state$weights[[layer]] <- state$weights[[layer]] + deltaWeights[[layer]]
+      }
     }
+
+    if (state$J[epoch] <= maxError)
+      break
   }
-  
+
   list(
     weights = state$weights,
     costHistory = state$J  
@@ -136,7 +154,7 @@ calcSensitivity <- function(state, layout) {
 }
 
 
-calcWeightsCorrection <- function(state, X) {
+calcWeightsCorrection <- function(state, X, learningRate) {
   layer <- state$currentLayer
   sample <- state$currentSample
   
