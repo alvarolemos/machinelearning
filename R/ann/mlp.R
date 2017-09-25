@@ -1,7 +1,9 @@
 AVAILABLE_TRAINING_PROTOCOLS <- c('sgd', 'batch')
 
 
-fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpochs=1000, protocol='sgd') {
+fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpochs=1000, protocol='sgd',
+                   hiddenActivation=tanh, hiddenActivationDerivative=tanhDerivative,
+                   outputActivation=sigmoid, outputActivationDerivative=sigmoidDerivative) {
   if (!(protocol %in% AVAILABLE_TRAINING_PROTOCOLS)) {
     stop(paste('Invalid training protocol:', protocol))
   }
@@ -12,7 +14,7 @@ fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpoch
   state$J <- c()
 
   for (epoch in 1:maxNumEpochs) {
-    feedForwardResults <- feedForward(X, state$weights)
+    feedForwardResults <- feedForward(X, state$weights, hiddenActivation, outputActivation)
     state$netActivations <- feedForwardResults$netActivations
     state$layerOutputs <- feedForwardResults$layerOutputs
 
@@ -28,7 +30,7 @@ fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpoch
 
       for (layer in netDepth:1) {
         state$currentLayer <- layer
-        state$sensitivities[[layer]] <- calcSensitivity(state, layout)
+        state$sensitivities[[layer]] <- calcSensitivity(state, layout, hiddenActivationDerivative, outputActivationDerivative)
         dW <- calcWeightsCorrection(state, X, learningRate)
 
         if (protocol == 'sgd') {
@@ -56,8 +58,8 @@ fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpoch
 }
 
 
-predictMlp <- function(X, weights) {
-  feedForwardResults <- feedForward(X, weights)
+predictMlp <- function(X, weights, hiddenActivation, outputActivation) {
+  feedForwardResults <- feedForward(X, weights, hiddenActivation, outputActivation)
   layerOutputs <- feedForwardResults$layerOutputs
   netDepth <- length(weights)
   layerOutputs[[netDepth]]
@@ -90,16 +92,20 @@ initializeWeightsCorrection <- function(weights) {
 }
 
 
-feedForward <- function(X, weights) {
+feedForward <- function(X, weights, hiddenActivation, outputActivation) {
   netActivations <- list()
   layerOutputs <- list()
   layerInput <- X
 
   netDepth <- length(weights)
-  for (i in 1:netDepth) {
-    netActivations[[i]] <- passForward(layerInput, weights[[i]])
-    layerOutputs[[i]] <- activate(netActivations[[i]])
-    layerInput <- layerOutputs[[i]]
+  for (layer in 1:netDepth) {
+    netActivations[[layer]] <- passForward(layerInput, weights[[layer]])
+    if (layer == netDepth) {
+      layerOutputs[[layer]] <- outputActivation(netActivations[[layer]])  
+    } else {
+      layerOutputs[[layer]] <- hiddenActivation(netActivations[[layer]])
+    }
+    layerInput <- layerOutputs[[layer]]
   }
 
   list(
@@ -126,37 +132,25 @@ removeBias <- function(W) {
 }
 
 
-sigmoid <- function(x) {
-  return(1 / (1 + exp(-x)))
-}
-
-
-sigmoidDerivative <- function(x) {
-  return(sigmoid(x) * (1 - sigmoid(x)))
-}
-
-
 computeCost <- function(targets, z) {
-  return(0.5 * sum(targets - z) ^ 2)
+  return(0.5 * sum((targets - z) ^ 2))
 }
 
 
-activate <- function(net) {
-  return(sigmoid(net))
-}
-
-
-calcSensitivity <- function(state, layout) {
+calcSensitivity <- function(state, layout, hiddenActivationDerivative, outputActivationDerivative) {
   layer <- state$currentLayer
   sample <- state$currentSample
-  dOutputdNetActivation <- sigmoidDerivative(state$netActivations[[layer]][sample, ])
+
   if (layer == length(layout)) {
-    error <- state$errors[sample]
+    dOutputdNetActivation <- outputActivationDerivative(state$netActivations[[layer]][sample, ])
+    error <- state$errors[sample, ]
     sensitivity <- dOutputdNetActivation * error
   } else {
+    dOutputdNetActivation <- hiddenActivationDerivative(state$netActivations[[layer]][sample, ])
     weightedNextLayerSensitivitiesSum <- t(removeBias(state$weights[[layer + 1]])) %*% state$sensitivities[[layer + 1]]
     sensitivity <- dOutputdNetActivation * weightedNextLayerSensitivitiesSum
   }
+
   matrix(sensitivity, nrow=layout[layer], ncol=1)
 }
 
