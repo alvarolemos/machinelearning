@@ -30,3 +30,13 @@ softmaxDerivative <- function(X) {
   softmaxX <- softmax(X)
   softmaxX * (1 - softmaxX)
 }
+
+
+linear <- function(x) {
+  x
+}
+
+
+linearDerivative <- function(x) {
+  matrix(1, nrow=length(x), ncol=1)
+}

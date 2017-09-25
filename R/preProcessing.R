@@ -49,3 +49,8 @@ oneHotDecode <- function(yDummy) {
   y <- apply(yDummy, 1, which.max)
   matrix(y, nrow=nrow(yDummy), ncol=1)
 }
+
+
+zNormalize <- function(x) {
+  (x - mean(x)) / sd(x)
+}
