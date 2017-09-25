@@ -51,6 +51,12 @@ oneHotDecode <- function(yDummy) {
 }
 
 
-zNormalize <- function(x) {
-  (x - mean(x)) / sd(x)
+zNormalize <- function(X) {
+  if (is.matrix(X)) {
+    Xmean <- apply(X, 2, mean)
+    Xsd <- apply(X, 2, sd)
+    t(apply(X, 1, function(Xrow, Xmean, Xsd) { (Xrow - Xmean) / Xsd }, Xmean, Xsd))
+  } else {
+    (X - mean(X)) / sd(X)
+  }
 }
