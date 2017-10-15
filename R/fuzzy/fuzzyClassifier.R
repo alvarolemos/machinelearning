@@ -1,15 +1,15 @@
 library(e1071)
 
 
-fitFuzzyClassifier <- function(X, y, nClusters) {
-  cMeansModel <- cmeans(X, nClusters)
-  clustersStdDevs <- calcStdDevs(X, cMeansModel$membership)
-  clustersLabels <- assignClustersLabels(y, cMeansModel$membership)
-  
+fitFuzzyClassifier <- function(X, y, nRules) {
+  cMeansModel <- cmeans(X, nRules)
+  rulesStdDevs <- calcStdDevs(X, cMeansModel$membership)
+  rulesConsequents <- assignGroupConsequent(y, cMeansModel$membership)
+
   list(
-    clustersCenters = cMeansModel$centers,
-    clustersStdDevs = clustersStdDevs,
-    clustersLabels = clustersLabels
+    rulesCenters = cMeansModel$centers,
+    rulesStdDevs = rulesStdDevs,
+    rulesConsequents = rulesConsequents
   )
 }
 
@@ -17,65 +17,78 @@ fitFuzzyClassifier <- function(X, y, nClusters) {
 calcStdDevs <- function(X, membershipMatrix) {
   nSamples <- nrow(X)
   nFeatures <- ncol(X)
-  nClusters <- ncol(membershipMatrix)
+  nRules <- ncol(membershipMatrix)
   stdDevs <- c()
 
-  for (cluster in 1:nClusters) {
-    currentClusterMembership <- rep(membershipMatrix[, cluster], nFeatures)
-    currentClusterMembership <- matrix(currentClusterMembership, nrow=nSamples, ncol=nFeatures)
-    weightedSamples <- X * currentClusterMembership
+  for (rule in 1:nRules) {
+    currentRuleMembership <- rep(membershipMatrix[, rule], nFeatures)
+    currentRuleMembership <- matrix(currentRuleMembership, nrow=nSamples, ncol=nFeatures)
+    weightedSamples <- X * currentRuleMembership
     stdDevs <- rbind(stdDevs, apply(weightedSamples, 2, sd))
   }
-  
+
   stdDevs
 }
 
 
-assignClustersLabels <- function(y, membershipMatrix) {
+assignGroupConsequent <- function(y, membershipMatrix) {
   labels <- sort(unique(y))
   membershipSumPerClass <- c()
   for (label in labels) {
     mask <- which(y == label)
     membershipSumPerClass <- cbind(membershipSumPerClass, apply(membershipMatrix[mask, ], 2, sum))
   }
-  apply(membershipSumPerClass, 1, which.max)
+  groupsConsequents <- apply(membershipSumPerClass, 1, which.max)
+  binarizeClasses(groupsConsequents)
+}
+
+
+binarizeClasses <- function(classes) {
+  classes - 1
 }
 
 
 predictFuzzyClassifier <- function(model, X) {
-  clustersCenters <- model$clustersCenters
-  clustersStdDevs <- model$clustersStdDevs  
-  
-  nCluster <- nrow(clustersCenters)
-  classActivations <- list()
-  activations <- c()
-  
-  # Calc activations
-  for (cluster in 1:nCluster) {
-    membershipGrades <- c()
-    for (feature in 1:ncol(X)) {
-      mu <- clustersCenters[cluster, feature]
-      sigma <- clustersStdDevs[cluster, feature]
-      membershipGrades <- cbind(membershipGrades, calcPdf(X[, feature], mu, sigma))
-    }
-    currentClusterActivations <- apply(membershipGrades, 1, prod)
-    activations <- cbind(activations, currentClusterActivations)
+  rulesCenters <- model$rulesCenters
+  rulesStdDevs <- model$rulesStdDevs  
+
+  nRules <- nrow(rulesCenters)
+  activations <- calcActivations(model, X)
+
+  consequentsProbabilisticSum <- c()
+  consequents <- sort(unique(model$rulesConsequents))
+  for (consequent in consequents) {
+    mask <- model$rulesConsequents == consequent
+    currentConsequentActivations <- activations[, mask]
+    currentConsequentProbabilisticSum <- apply(currentConsequentActivations, 1, sum) # TODO - Use S-Norm instead
+    consequentsProbabilisticSum <- cbind(consequentsProbabilisticSum, currentConsequentProbabilisticSum)
   }
-  
-  labelsProbabilisticSum <- c()
-  labels <- sort(unique(model$clustersLabels))
-  for (label in labels) {
-    mask <- model$clustersLabels == label
-    currentLabelActivations <- activations[, mask]
-    currentLabelProbabilisticSum <- apply(currentLabelActivations, 1, sum) # TODO - trocar por snorma
-    labelsProbabilisticSum <- cbind(labelsProbabilisticSum, currentLabelProbabilisticSum)
-  }
-  
-  predictions <- apply(labelsProbabilisticSum, 1, which.max)
+
+  predictions <- apply(consequentsProbabilisticSum, 1, which.max)
   predictions - 1
 }
 
 
-calcPdf <- function(x, mean, stdDev) {
+calcActivations <- function(model, X) {
+  rulesCenters <- model$rulesCenters
+  rulesStdDevs <- model$rulesStdDevs
+  activations <- c()
+
+  for (rule in 1:nrow(rulesCenters)) {
+    membershipGrades <- c()
+    for (feature in 1:ncol(X)) {
+      mu <- rulesCenters[rule, feature]
+      sigma <- rulesStdDevs[rule, feature]
+      membershipGrades <- cbind(membershipGrades, calcGaussianMembership(X[, feature], mu, sigma))
+    }
+    currentRuleActivations <- apply(membershipGrades, 1, prod)
+    activations <- cbind(activations, currentRuleActivations)
+  }
+
+  activations
+}
+
+
+calcGaussianMembership <- function(x, mean, stdDev) {
   (1 / (sqrt(2 * pi * stdDev * stdDev))) * exp(-0.5 * ((x - mean) / (stdDev)) ^ 2)
 }

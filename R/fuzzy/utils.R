@@ -6,17 +6,17 @@ plotGaussians <- function(X, y, means, stdDevs, labels, step = 0.01) {
   
   for (cluster in 1:nrow(means)) {
     gaussian <- calcPdf(x1Range, means[cluster, 1], stdDevs[cluster, 1]) * 0.1
-    plot(x1Range, gaussian + min(x2Range), xlab='', ylab='', xlim=x1Lim, ylim=x2Lim, type='l', col=labels[cluster])
+    plot(x1Range, gaussian + min(x2Range), xlab='', ylab='', xlim=x1Lim, ylim=x2Lim, type='l', col=labels[cluster]+1)
     par(new = TRUE)
   }
   
   for (cluster in 1:nrow(means)) {
     gaussian <- calcPdf(x2Range, means[cluster, 1], stdDevs[cluster, 1]) * 0.1
-    plot(gaussian + min(x1Range), x2Range, xlab='', ylab='', xlim=x1Lim, ylim=x2Lim, type='l', col=labels[cluster])
+    plot(gaussian + min(x1Range), x2Range, xlab='', ylab='', xlim=x1Lim, ylim=x2Lim, type='l', col=labels[cluster]+1)
     par(new = TRUE)
   }
   
   plot(X, col=y+1, xlab='x1', ylab='x2', xlim=x1Lim, ylim=x2Lim)
   par(new = TRUE)
-  plot(means, col=labels, xlab='', ylab='', xlim=x1Lim, ylim=x2Lim, pch=21, bg=labels)
+  plot(means, col=labels+1, xlab='', ylab='', xlim=x1Lim, ylim=x2Lim, pch=21, bg=labels+1)
 }
