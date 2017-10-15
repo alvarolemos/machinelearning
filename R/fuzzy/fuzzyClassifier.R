@@ -60,7 +60,9 @@ predictFuzzyClassifier <- function(model, X) {
   for (consequent in consequents) {
     mask <- model$rulesConsequents == consequent
     currentConsequentActivations <- activations[, mask]
-    currentConsequentProbabilisticSum <- apply(currentConsequentActivations, 1, sum) # TODO - Use S-Norm instead
+    if (!is.matrix(currentConsequentActivations))
+      currentConsequentActivations <- matrix(currentConsequentActivations, nrow=length(currentConsequentActivations), ncol=1)
+    currentConsequentProbabilisticSum <- apply(currentConsequentActivations, 1, calcProbabilisticSum)
     consequentsProbabilisticSum <- cbind(consequentsProbabilisticSum, currentConsequentProbabilisticSum)
   }
 
@@ -91,4 +93,9 @@ calcActivations <- function(model, X) {
 
 calcGaussianMembership <- function(x, mean, stdDev) {
   (1 / (sqrt(2 * pi * stdDev * stdDev))) * exp(-0.5 * ((x - mean) / (stdDev)) ^ 2)
+}
+
+
+calcProbabilisticSum <- function(x) {
+  return(sum(x) - prod(x))
 }
