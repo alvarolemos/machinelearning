@@ -65,7 +65,7 @@ predictFuzzyClassifier <- function(model, X) {
   }
 
   predictions <- apply(consequentsProbabilisticSum, 1, which.max)
-  predictions - 1
+  binarizeClasses(predictions)
 }
 
 
