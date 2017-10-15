@@ -1,3 +1,6 @@
+library(e1071)
+
+
 fitFuzzyClassifier <- function(X, y, nClusters) {
   cMeansModel <- cmeans(X, nClusters)
   clustersStdDevs <- calcStdDevs(X, cMeansModel$membership)
@@ -16,7 +19,7 @@ calcStdDevs <- function(X, membershipMatrix) {
   nFeatures <- ncol(X)
   nClusters <- ncol(membershipMatrix)
   stdDevs <- c()
-  
+
   for (cluster in 1:nClusters) {
     currentClusterMembership <- rep(membershipMatrix[, cluster], nFeatures)
     currentClusterMembership <- matrix(currentClusterMembership, nrow=nSamples, ncol=nFeatures)
@@ -43,7 +46,7 @@ predictFuzzyClassifier <- function(model, X) {
   clustersCenters <- model$clustersCenters
   clustersStdDevs <- model$clustersStdDevs  
   
-  nCluster <- 4
+  nCluster <- nrow(clustersCenters)
   classActivations <- list()
   activations <- c()
   
@@ -55,7 +58,7 @@ predictFuzzyClassifier <- function(model, X) {
       sigma <- clustersStdDevs[cluster, feature]
       membershipGrades <- cbind(membershipGrades, calcPdf(X[, feature], mu, sigma))
     }
-    currentClusterActivations <- apply(membershipGrades, 1, sum)
+    currentClusterActivations <- apply(membershipGrades, 1, prod)
     activations <- cbind(activations, currentClusterActivations)
   }
   
@@ -68,7 +71,8 @@ predictFuzzyClassifier <- function(model, X) {
     labelsProbabilisticSum <- cbind(labelsProbabilisticSum, currentLabelProbabilisticSum)
   }
   
-  apply(labelsProbabilisticSum, 1, which.max)
+  predictions <- apply(labelsProbabilisticSum, 1, which.max)
+  predictions - 1
 }
 
 
