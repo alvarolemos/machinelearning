@@ -4,7 +4,7 @@ library(e1071)
 fitFuzzyClassifier <- function(X, y, nRules) {
   cMeansModel <- cmeans(X, nRules)
   rulesStdDevs <- calcStdDevs(X, cMeansModel$membership)
-  rulesConsequents <- assignGroupConsequent(y, cMeansModel$membership)
+  rulesConsequents <- assignRuleConsequent(y, cMeansModel$membership)
 
   list(
     rulesCenters = cMeansModel$centers,
@@ -31,7 +31,7 @@ calcStdDevs <- function(X, membershipMatrix) {
 }
 
 
-assignGroupConsequent <- function(y, membershipMatrix) {
+assignRuleConsequent <- function(y, membershipMatrix) {
   labels <- sort(unique(y))
   membershipSumPerClass <- c()
   for (label in labels) {
@@ -52,7 +52,6 @@ predictFuzzyClassifier <- function(model, X) {
   rulesCenters <- model$rulesCenters
   rulesStdDevs <- model$rulesStdDevs  
 
-  nRules <- nrow(rulesCenters)
   activations <- calcActivations(model, X)
 
   consequentsProbabilisticSum <- c()

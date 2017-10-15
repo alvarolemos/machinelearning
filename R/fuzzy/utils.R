@@ -26,14 +26,14 @@ plotGaussians <- function(model, X, y, step = 0.01) {
 }
 
 
-plotDecisionSurface <- function(model, X, y, step = 0.01) {
+plotDecisionSurface <- function(model, X, y, step = 0.01, title = '') {
   x1Range <- seq(min(X[, 1]), max(X[, 1]), step)
   x2Range <- seq(min(X[, 2]), max(X[, 2]), step)
   x1Lim = c(min(x1Range), max(x1Range))
   x2Lim = c(min(x2Range), max(x2Range))
 
   surface <- outer(x1Range, x2Range, FUN = function(x1, x2, model) { predictFuzzyClassifier(model, cbind(x1, x2)) }, model)
-  contour(x1Range, x2Range, surface, nlevels = 5, drawlabels=FALSE, xlim = x1Lim, ylim = x2Lim)
+  contour(x1Range, x2Range, surface, nlevels = 5, drawlabels=FALSE, xlim = x1Lim, ylim = x2Lim, xlab='', ylab='')
   par(new = TRUE)
-  plot(X, xlim = x1Lim, ylim = x2Lim, col=y+1)
+  plot(X, xlim = x1Lim, ylim = x2Lim, col=y+1, xlab='x1', ylab='x2', main = paste('# Rules:', nrow(model$rulesCenters)))
 }
