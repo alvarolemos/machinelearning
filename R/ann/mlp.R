@@ -2,7 +2,7 @@ AVAILABLE_TRAINING_PROTOCOLS <- c('sgd', 'batch')
 
 
 fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpochs=1000, protocol='sgd',
-                   hiddenActivation=tanh, hiddenActivationDerivative=tanhDerivative,
+                   hiddenActivation=tanh, hiddenActivationDerivative=tanhDerivative, verbose=FALSE,
                    outputActivation=sigmoid, outputActivationDerivative=sigmoidDerivative) {
   if (!(protocol %in% AVAILABLE_TRAINING_PROTOCOLS)) {
     stop(paste('Invalid training protocol:', protocol))
@@ -20,6 +20,8 @@ fitMlp <- function(X, targets, layout, learningRate, maxError=0.001, maxNumEpoch
 
     predictions <- state$layerOutputs[[netDepth]]
     state$J <- c(state$J, computeCost(targets, predictions))
+    if (verbose)
+      print(state$J[epoch])
     state$errors <- targets - predictions
 
     deltaWeights <- initializeWeightsCorrection(state$weights)

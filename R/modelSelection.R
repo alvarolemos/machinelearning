@@ -33,9 +33,9 @@ trainValTestSplit <- function(X, y, trainSetFraction, valSetFraction) {
   XTrain <- X[trainIndexes, ]
   XVal <- X[valIndexes, ]
   XTest <- X[testIndexes, ]
-  yTrain <- y[trainIndexes]
-  yVal <- y[valIndexes]
-  yTest <- y[testIndexes]
+  yTrain <- y[trainIndexes, ]
+  yVal <- y[valIndexes, ]
+  yTest <- y[testIndexes, ]
 
   list(
     XTrain = XTrain,
